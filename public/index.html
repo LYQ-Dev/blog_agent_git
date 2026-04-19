@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Elysia 学习笔记 AI 生成</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    body {
+      max-width: 720px;
+      margin: 30px auto;
+      padding: 0 20px;
+      background: #111;
+      color: #fff;
+    }
+    .card {
+      background: #222;
+      padding: 22px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+    }
+    select,
+    textarea,
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+    }
+    textarea {
+      resize: vertical;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: bold;
+      background: #797fff;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 8px;
+    }
+    button:hover {
+      background: #6666ff;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 14px;
+      color: #9f9;
+      font-size: 14px;
+      min-height: 20px;
+    }
+    .success {
+      color: #4cd964;
+    }
+    .error {
+      color: #ff6b6b;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .preview {
+      margin-top: 20px;
+      padding: 15px;
+      background: #333;
+      border-radius: 8px;
+      font-size: 14px;
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+    }
+    .preview-title {
+      color: #797fff;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .push-container {
+      display: none;
+      margin-top: 12px;
+    }
+    #pushBtn {
+      background: #0099ff;
+    }
+    #pushBtn:hover {
+      background: #0080dd;
+    }
+
+    .diary-extra {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #3a3a3a;
+    }
+    .drop-zone {
+      margin-top: 10px;
+      padding: 18px;
+      border: 2px dashed #797fff;
+      border-radius: 12px;
+      text-align: center;
+      color: #c8cbff;
+      background: #2b2b3d;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .drop-zone.dragover {
+      border-color: #9ca0ff;
+      background: #353553;
+    }
+    .image-list {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #2b2b2b;
+      color: #ddd;
+      font-size: 13px;
+      max-height: 120px;
+      overflow-y: auto;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <h1>📝 Elysia 学习笔记 AI 生成</h1>
+
+  <div class="card">
+    <label>选择科目</label>
+    <select id="type">
+      <option value="math">数学</option>
+      <option value="english">英语</option>
+      <option value="major">408 专业课</option>
+      <option value="diary">日记</option>
+    </select>
+
+    <label>今天学习内容（随便写）</label>
+    <textarea
+      id="userInput"
+      rows="7"
+      placeholder="今天学了什么，随便写几句就行..."
+    ></textarea>
+
+    <div class="diary-extra" id="diaryExtra" style="display: none;">
+      <label>日记标题</label>
+      <input id="diaryTitle" type="text" value="学习时长统计" placeholder="例如：学习时长统计" />
+
+      <label>心情</label>
+      <input id="diaryMood" type="text" value="🤩" placeholder="例如：🤩" />
+
+      <label>天气</label>
+      <input id="diaryWeather" type="text" value="雨天" placeholder="例如：雨天" />
+
+      <label>地点</label>
+      <input id="diaryLocation" type="text" value="图书馆" placeholder="例如：图书馆" />
+
+      <label>标签（英文逗号分隔）</label>
+      <input id="diaryTags" type="text" value="考研, 项目, 学习" placeholder="例如：考研, 项目, 学习" />
+
+      <label>拖拽上传图片（可多张）</label>
+      <div class="drop-zone" id="dropZone">把图片拖到这里，或点击选择本地图片</div>
+      <input id="diaryImages" type="file" accept="image/*" multiple style="display: none;" />
+      <div class="image-list" id="imageList">未选择图片</div>
+    </div>
+
+    <button id="generateBtn" onclick="generate()">🚀 一键生成并保存 .md</button>
+
+    <!-- 自定义提交信息 + 推送按钮 -->
+    <div class="push-container" id="pushContainer">
+      <label>✏️ Git 提交信息（可编辑）</label>
+      <input
+        type="text"
+        id="commitMsg"
+        value="docs: 新增学习笔记"
+        placeholder="输入提交信息"
+      />
+      <button id="pushBtn" onclick="pushToGit()">✅ 确定推送（提交+推送到远程）</button>
+    </div>
+
+    <div class="status" id="status">📢 请输入学习内容后点击生成</div>
+
+    <div class="preview" id="preview">
+      <div class="preview-title">📄 生成内容预览：</div>
+      <div id="previewContent"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE_URL = "http://localhost:3000/api";
+    let isGenerating = false;
+    let diaryImages = [];
+    const MAX_DIARY_IMAGES = 20;
+
+    function toggleDiaryExtra() {
+      const type = document.getElementById("type").value;
+      const diaryExtra = document.getElementById("diaryExtra");
+      diaryExtra.style.display = type === "diary" ? "block" : "none";
+    }
+
+    function renderImageList() {
+      const imageList = document.getElementById("imageList");
+      if (!diaryImages.length) {
+        imageList.textContent = "未选择图片";
+        return;
+      }
+
+      const lines = diaryImages.map((file, index) => `${index + 1}. ${file.name}`).join("\n");
+      imageList.textContent = `已选择 ${diaryImages.length} 张图片\n${lines}`;
+    }
+
+    function addDiaryFiles(fileList) {
+      const status = document.getElementById("status");
+      const files = Array.from(fileList || []).filter((file) => file.type.startsWith("image/"));
+
+      if (!files.length) {
+        status.className = "status error";
+        status.textContent = "❌ 仅支持上传图片文件";
+        return;
+      }
+
+      const remain = MAX_DIARY_IMAGES - diaryImages.length;
+      if (remain <= 0) {
+        status.className = "status error";
+        status.textContent = `❌ 最多只能上传 ${MAX_DIARY_IMAGES} 张图片`;
+        return;
+      }
+
+      const accepted = files.slice(0, remain);
+      diaryImages = diaryImages.concat(accepted);
+      renderImageList();
+
+      if (files.length > remain) {
+        status.className = "status error";
+        status.textContent = `⚠️ 仅保留前 ${MAX_DIARY_IMAGES} 张图片`;
+      }
+    }
+
+    async function generateDiary(userInput) {
+      const status = document.getElementById("status");
+      const generateBtn = document.getElementById("generateBtn");
+      const pushContainer = document.getElementById("pushContainer");
+      const preview = document.getElementById("preview");
+      const previewContent = document.getElementById("previewContent");
+
+      if (isGenerating) return;
+      isGenerating = true;
+      generateBtn.disabled = true;
+      status.className = "status";
+      status.textContent = "🔁 正在生成日记并上传图片...";
+      preview.style.display = "none";
+      pushContainer.style.display = "none";
+
+      try {
+        const formData = new FormData();
+        formData.append("userInput", userInput);
+        formData.append("title", document.getElementById("diaryTitle").value.trim());
+        formData.append("mood", document.getElementById("diaryMood").value.trim());
+        formData.append("weather", document.getElementById("diaryWeather").value.trim());
+        formData.append("location", document.getElementById("diaryLocation").value.trim());
+        formData.append("tags", document.getElementById("diaryTags").value.trim());
+
+        diaryImages.forEach((file) => {
+          formData.append("images", file, file.name);
+        });
+
+        const response = await fetch(`${API_BASE_URL}/generate-diary`, {
+          method: "POST",
+          body: formData
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          status.className = "status success";
+          status.textContent = `✅ 日记生成成功！已保存到本地目录（${result.data.folder}）`;
+          preview.style.display = "block";
+          previewContent.textContent = result.data.content;
+          pushContainer.style.display = "block";
+        } else {
+          status.className = "status error";
+          status.textContent = `❌ ${result.message}`;
+        }
+      } catch (error) {
+        status.className = "status error";
+        status.textContent = "❌ 日记生成请求失败";
+      } finally {
+        isGenerating = false;
+        generateBtn.disabled = false;
+      }
+    }
+
+    async function generate() {
+      const type = document.getElementById("type").value;
+      const userInput = document.getElementById("userInput").value.trim();
+      const status = document.getElementById("status");
+      const generateBtn = document.getElementById("generateBtn");
+      const pushContainer = document.getElementById("pushContainer");
+      const preview = document.getElementById("preview");
+      const previewContent = document.getElementById("previewContent");
+
+      status.className = "status";
+      preview.style.display = "none";
+      pushContainer.style.display = "none";
+
+      if (!userInput) {
+        status.className = "status error";
+        status.textContent = "❌ 请输入学习内容";
+        return;
+      }
+
+      if (type === "diary") {
+        await generateDiary(userInput);
+        return;
+      }
+
+      if (isGenerating) return;
+      isGenerating = true;
+      generateBtn.disabled = true;
+      status.textContent = "🔁 AI 生成中...请稍候";
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, userInput })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          status.className = "status success";
+          status.textContent = `✅ 生成成功！已自动下载到浏览器`;
+          preview.style.display = "block";
+          previewContent.textContent = result.data.content;
+          downloadFile(result.data.content, result.data.fileName);
+          pushContainer.style.display = "block";
+        } else {
+          status.className = "status error";
+          status.textContent = `❌ ${result.message}`;
+        }
+      } catch (error) {
+        status.className = "status error";
+        status.textContent = "❌ 网络错误";
+      } finally {
+        isGenerating = false;
+        generateBtn.disabled = false;
+      }
+    }
+
+    // 推送：带自定义提交信息
+    async function pushToGit() {
+      const status = document.getElementById("status");
+      const pushBtn = document.getElementById("pushBtn");
+      const commitMsg = document.getElementById("commitMsg").value.trim();
+
+      if (!commitMsg) {
+        status.className = "status error";
+        status.textContent = "❌ 请输入提交信息";
+        return;
+      }
+
+      pushBtn.disabled = true;
+      status.textContent = "🔁 正在提交更改并推送到远程仓库...";
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/git-push`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ commitMsg })
+        });
+
+        const result = await res.json();
+        if (result.success) {
+          status.className = "status success";
+          status.textContent = "✅ 推送成功！文章已同步到远程仓库";
+        } else {
+          status.className = "status error";
+          status.textContent = `❌ 推送失败：${result.message}`;
+        }
+      } catch (e) {
+        status.className = "status error";
+        status.textContent = "❌ 推送请求失败";
+      } finally {
+        pushBtn.disabled = false;
+      }
+    }
+
+    // 下载文件
+    function downloadFile(content, fileName) {
+      const blob = new Blob([content], { type: 'text/markdown; charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    const typeSelect = document.getElementById("type");
+    const dropZone = document.getElementById("dropZone");
+    const diaryImagesInput = document.getElementById("diaryImages");
+
+    typeSelect.addEventListener("change", toggleDiaryExtra);
+
+    dropZone.addEventListener("click", () => {
+      diaryImagesInput.click();
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropZone.classList.add("dragover");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropZone.classList.remove("dragover");
+      });
+    });
+
+    dropZone.addEventListener("drop", (event) => {
+      addDiaryFiles(event.dataTransfer.files);
+    });
+
+    diaryImagesInput.addEventListener("change", (event) => {
+      addDiaryFiles(event.target.files);
+      event.target.value = "";
+    });
+
+    toggleDiaryExtra();
+  </script>
+</body>
+</html>
